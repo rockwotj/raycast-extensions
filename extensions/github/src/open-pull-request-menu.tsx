@@ -49,10 +49,22 @@ function joinArray(ar: (string | null | undefined)[], separator: string): string
 function OpenPullRequestMenu() {
   const { github } = getGitHubClient();
 
-  const { data, isLoading } = useCachedPromise(
+  const { prData, prIsLoading } = useCachedPromise(
     async () => {
       const result = await github.searchPullRequests({
         query: `is:pr is:open author:@me archived:false`,
+        numberOfItems: 50,
+      });
+      return result.search.edges?.map((edge) => edge?.node as PullRequestFieldsFragment);
+    },
+    [],
+    { keepPreviousData: true },
+  );
+
+  const { reviewData, reviewIsLoading } = useCachedPromise(
+    async () => {
+      const result = await github.searchPullRequests({
+        query: `is:pr is:open review-requested:@me archived:false`,
         numberOfItems: 50,
       });
       return result.search.edges?.map((edge) => edge?.node as PullRequestFieldsFragment);
@@ -65,7 +77,7 @@ function OpenPullRequestMenu() {
     <MenuBarRoot
       title={displayTitlePreference() ? `${data?.length}` : undefined}
       icon={{ source: "pull-request.svg", tintColor: Color.PrimaryText }}
-      isLoading={isLoading}
+      isLoading={prIsLoading || reviewIsLoading}
       tooltip="GitHub My Open Pull Requests"
     >
       <MenuBarSection title="My Pull Requests">
@@ -83,11 +95,28 @@ function OpenPullRequestMenu() {
         )}
         emptyElement={<MenuBarItem title="No Pull Requests" />}
       >
-        {data?.map((i) => (
+        {prData?.map((i) => (
           <MenuBarItem
             key={i.id}
             title={`#${i.number} ${i.title} ${joinArray([getCheckStateEmoji(i)], "")}`}
             icon="pull-request.svg"
+            tooltip={i.repository.nameWithOwner}
+            onAction={() => open(i.permalink)}
+          />
+        ))}
+      </MenuBarSection>
+      <MenuBarSection
+        maxChildren={getMaxPullRequestsPreference()}
+        moreElement={(hidden) => (
+          <MenuBarItem title={`... ${hidden} more`} onAction={() => launchMyPullRequestsCommand()} />
+        )}
+        emptyElement={<MenuBarItem title="No Code Reviews" />}
+      >
+        {reviewData?.map((i) => (
+          <MenuBarItem
+            key={i.id}
+            title={`#${i.number} ${i.title}}`}
+            icon="code-review.svg"
             tooltip={i.repository.nameWithOwner}
             onAction={() => open(i.permalink)}
           />
