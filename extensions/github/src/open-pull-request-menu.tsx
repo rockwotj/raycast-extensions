@@ -49,7 +49,7 @@ function joinArray(ar: (string | null | undefined)[], separator: string): string
 function OpenPullRequestMenu() {
   const { github } = getGitHubClient();
 
-  const { prData, prIsLoading } = useCachedPromise(
+  const { data: prData, isLoading: prIsLoading } = useCachedPromise(
     async () => {
       const result = await github.searchPullRequests({
         query: `is:pr is:open author:@me archived:false`,
@@ -61,7 +61,7 @@ function OpenPullRequestMenu() {
     { keepPreviousData: true },
   );
 
-  const { reviewData, reviewIsLoading } = useCachedPromise(
+  const { data: reviewData, isLoading: reviewIsLoading } = useCachedPromise(
     async () => {
       const result = await github.searchPullRequests({
         query: `is:pr is:open review-requested:@me archived:false`,
@@ -75,7 +75,7 @@ function OpenPullRequestMenu() {
 
   return (
     <MenuBarRoot
-      title={displayTitlePreference() ? `${data?.length}` : undefined}
+      title={displayTitlePreference() ? `${(prData?.length ?? 0) + (reviewData?.length ?? 0)}` : undefined}
       icon={{ source: "pull-request.svg", tintColor: Color.PrimaryText }}
       isLoading={prIsLoading || reviewIsLoading}
       tooltip="GitHub My Open Pull Requests"
@@ -115,7 +115,7 @@ function OpenPullRequestMenu() {
         {reviewData?.map((i) => (
           <MenuBarItem
             key={i.id}
-            title={`#${i.number} ${i.title}}`}
+            title={`#${i.number} ${i.title}`}
             icon="code-review.svg"
             tooltip={i.repository.nameWithOwner}
             onAction={() => open(i.permalink)}
